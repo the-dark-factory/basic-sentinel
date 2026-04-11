@@ -64,7 +64,7 @@
   "fixer": {
     "key_path": "./keys/fixer.key",
     "socket_path": "/tmp/sentinel-fixer.sock",
-    "supervisor_pubkey": "8099c7318d34692d03856c219f4ecc62a39f7d966aa246bf168b9adbbac33d8d",
+    "supervisor_pubkey": "",
     "forge_api_url": "http://localhost:8090",
     "forge_api_secret": "${FORGE_API_SECRET}",
     "safety": {
