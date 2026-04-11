@@ -1,0 +1,138 @@
+{
+  "project_name": "Basic Sentinel",
+  "project_summary": "Config-driven health monitor and remediation agent for any factory. Two binaries (supervisor + fixer) with Ed25519 signed protocol. Supervisor polls HTTP endpoints and detects failures. Fixer listens on Unix socket, verifies signed instructions, executes remediation with rate limits. Drop-in component for single-machine factory deployments.",
+  "target_users": "Makers running factories who need health monitoring without setting up Prometheus/Grafana. Any factory using the Dark Factory pipeline.",
+  "stakeholders": "Glass Factory component registry community",
+  "tech_stack": "Go 1.23, Ed25519 (stdlib only), Unix domain sockets, systemd",
+  "budget": "Home tokens only — zero cloud cost",
+  "acceptance_criteria": "A maker can configure N health check URLs and M services to restart, run both binaries, and observe automatic detection and remediation of a stopped service — with full Ed25519 signed audit trail.",
+
+  "components": [
+    {
+      "name": "protocol",
+      "description": "Ed25519 identity management and signed message types (Finding, Instruction, ActionResult)",
+      "responsibilities": [
+        "Generate and load Ed25519 key pairs",
+        "Sign and verify Findings, Instructions, and ActionResults",
+        "Marshal/unmarshal JSON wire format"
+      ],
+      "interfaces": [],
+      "edge_cases": ["Corrupt key file", "Tampered instruction signature", "Untrusted signer"]
+    },
+    {
+      "name": "observer",
+      "description": "Polling loop that runs configured health checks and dispatches findings",
+      "responsibilities": [
+        "Poll HTTP health endpoints at configurable interval",
+        "Create signed Findings for failures",
+        "Send signed Instructions to Fixer via Unix socket",
+        "Log observation reports"
+      ],
+      "interfaces": [],
+      "edge_cases": ["Fixer socket unreachable", "Health check timeout", "All checks healthy (no-op cycle)"]
+    },
+    {
+      "name": "fixer",
+      "description": "Unix socket listener that verifies and executes signed remediation instructions",
+      "responsibilities": [
+        "Listen on Unix domain socket",
+        "Verify Ed25519 signature on incoming Instructions",
+        "Reject instructions from untrusted signers",
+        "Execute remediation actions with rate limiting",
+        "Return signed ActionResult"
+      ],
+      "interfaces": [],
+      "edge_cases": ["Rate limit exceeded", "Cooldown not expired", "Unknown action type", "Service restart fails"]
+    },
+    {
+      "name": "config",
+      "description": "JSON configuration with environment variable expansion",
+      "responsibilities": [
+        "Load and parse JSON config",
+        "Expand ${ENV_VAR} references",
+        "Apply sensible defaults for missing values"
+      ],
+      "interfaces": [],
+      "edge_cases": ["Missing config file", "Invalid JSON", "Missing required fields"]
+    }
+  ],
+
+  "functional_requirements": [
+    {
+      "id": "FR1",
+      "title": "Config-driven HTTP health checks",
+      "description": "Supervisor polls a configurable list of HTTP URLs. Each check has a name, URL, timeout, and optional remediation action. Failures create signed Findings.",
+      "priority": "must"
+    },
+    {
+      "id": "FR2",
+      "title": "Ed25519 signed protocol",
+      "description": "Every Finding, Instruction, and ActionResult is signed by the sender's Ed25519 key. Fixer only accepts Instructions signed by the trusted Supervisor key.",
+      "priority": "must"
+    },
+    {
+      "id": "FR3",
+      "title": "Unix socket communication",
+      "description": "Supervisor sends Instructions to Fixer via Unix domain socket. Newline-delimited JSON. No network exposure.",
+      "priority": "must"
+    },
+    {
+      "id": "FR4",
+      "title": "Rate-limited remediation",
+      "description": "Fixer enforces per-service restart cooldowns and per-job requeue limits. Blocked actions return error ActionResults.",
+      "priority": "must"
+    },
+    {
+      "id": "FR5",
+      "title": "Service restart action",
+      "description": "Fixer can restart local systemd services via systemctl. Only the services listed in config are restartable.",
+      "priority": "must"
+    },
+    {
+      "id": "FR6",
+      "title": "Alert escalation",
+      "description": "When automated remediation is exhausted or unavailable, Fixer dispatches alerts via log file and optional webhook.",
+      "priority": "should"
+    }
+  ],
+
+  "non_functional_requirements": [
+    {
+      "id": "NFR1",
+      "category": "security",
+      "description": "Hard separation: Supervisor never mutates state, Fixer never observes. All instructions must be cryptographically signed. Untrusted signers are rejected."
+    },
+    {
+      "id": "NFR2",
+      "category": "simplicity",
+      "description": "Zero external dependencies beyond Go stdlib. Single JSON config file. Two binaries. No database required."
+    },
+    {
+      "id": "NFR3",
+      "category": "reliability",
+      "description": "Both binaries must be restartable by systemd (Restart=always). Stale Unix sockets cleaned up on start."
+    }
+  ],
+
+  "constraints": [
+    {
+      "type": "language",
+      "description": "Go, stdlib only (no third-party deps). Single binary per role."
+    },
+    {
+      "type": "deployment",
+      "description": "Must run on a single Linux machine with systemd. No container runtime required."
+    }
+  ],
+
+  "out_of_scope": "Web UI, dashboard, remote SSH actions, TLS certificate checking, database health checks. Those are Dark Factory Sentinel features, not basic sentinel.",
+  "timeline": "Single forge run",
+
+  "quality_gates": {
+    "external_perspective": true,
+    "ambiguities_resolved": true,
+    "edge_cases_enumerated": true,
+    "acceptance_criteria_behavioral": true,
+    "components_decomposed": true
+  }
+}

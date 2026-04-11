@@ -1,0 +1,30 @@
+[Unit]
+Description=Sentinel Supervisor (observation only)
+After=network.target ollama.service
+Wants=fixerd.service
+
+[Service]
+Type=simple
+User=sentinel
+Group=sentinel
+ExecStart=/opt/sentinel/bin/supervisord -config /opt/sentinel/config.json
+WorkingDirectory=/opt/sentinel
+Restart=always
+RestartSec=5
+WatchdogSec=120
+
+# Security hardening
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+ReadOnlyPaths=/
+
+# Only needs to write its own keys and logs
+ReadWritePaths=/opt/sentinel/keys /opt/sentinel/logs
+
+# Environment
+EnvironmentFile=/opt/sentinel/.env
+
+[Install]
+WantedBy=multi-user.target

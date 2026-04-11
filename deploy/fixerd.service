@@ -1,0 +1,28 @@
+[Unit]
+Description=Sentinel Fixer (remediation agent)
+After=network.target supervisord.service
+
+[Service]
+Type=simple
+User=sentinel
+Group=sentinel
+ExecStart=/opt/sentinel/bin/fixerd -config /opt/sentinel/config.json
+WorkingDirectory=/opt/sentinel
+Restart=always
+RestartSec=5
+
+# Security hardening
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+ReadOnlyPaths=/
+
+# Needs write for socket, keys, logs, and Forge DB (if co-located)
+ReadWritePaths=/opt/sentinel/keys /opt/sentinel/logs /var/run/sentinel
+
+# Environment
+EnvironmentFile=/opt/sentinel/.env
+
+[Install]
+WantedBy=multi-user.target

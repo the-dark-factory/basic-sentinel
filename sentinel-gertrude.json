@@ -1,0 +1,61 @@
+{
+  "supervisor": {
+    "key_path": "/opt/sentinel/keys/supervisor.key",
+    "poll_interval_sec": 30,
+    "checks": [
+      {
+        "name": "spark_vllm",
+        "kind": "http",
+        "url": "http://192.168.0.170:8000/v1/models",
+        "timeout_sec": 5,
+        "remediation_action": "alert_human",
+        "remediation_params": "{\"message\":\"Spark vLLM is down\"}"
+      },
+      {
+        "name": "gertrude_ollama",
+        "kind": "http",
+        "url": "http://localhost:11434/api/tags",
+        "timeout_sec": 3,
+        "remediation_action": "restart_service",
+        "remediation_params": "{\"service\":\"ollama\"}"
+      },
+      {
+        "name": "landing_page",
+        "kind": "http",
+        "url": "https://thedarkfactory.dev/",
+        "timeout_sec": 5,
+        "remediation_action": "alert_human",
+        "remediation_params": "{\"message\":\"Landing page is down\"}"
+      },
+      {
+        "name": "tls_darkfactory_dev",
+        "kind": "tls",
+        "url": "https://thedarkfactory.dev",
+        "timeout_sec": 5
+      },
+      {
+        "name": "tls_darkfactory_couk",
+        "kind": "tls",
+        "url": "https://thedarkfactory.co.uk",
+        "timeout_sec": 5
+      }
+    ]
+  },
+  "fixer": {
+    "key_path": "/opt/sentinel/keys/fixer.key",
+    "socket_path": "/var/run/sentinel/fixer.sock",
+    "supervisor_pubkey": "",
+    "forge_api_url": "",
+    "forge_api_secret": "${FORGE_API_SECRET}",
+    "safety": {
+      "max_requeues_per_job_per_hour": 3,
+      "max_requeues_per_stage_total": 5,
+      "restart_cooldown_sec": 300,
+      "max_restarts_per_hour": 3
+    }
+  },
+  "alert": {
+    "log_path": "/opt/sentinel/logs/sentinel.log",
+    "webhook_url": ""
+  }
+}

@@ -1,0 +1,81 @@
+{
+  "supervisor": {
+    "key_path": "./keys/supervisor.key",
+    "poll_interval_sec": 30,
+    "checks": [
+      {
+        "name": "spark_vllm",
+        "kind": "http",
+        "url": "http://192.168.0.170:8000/v1/models",
+        "timeout_sec": 5,
+        "remediation_action": "restart_service",
+        "remediation_params": "{\"service\":\"vllm\",\"host\":\"192.168.0.170\"}"
+      },
+      {
+        "name": "gertrude_ollama",
+        "kind": "http",
+        "url": "http://192.168.0.252:11434/api/tags",
+        "timeout_sec": 3,
+        "remediation_action": "restart_service",
+        "remediation_params": "{\"service\":\"ollama\"}"
+      },
+      {
+        "name": "forge_local",
+        "kind": "http",
+        "url": "http://localhost:8090/api/forge/health",
+        "timeout_sec": 5,
+        "remediation_action": "alert_human",
+        "remediation_params": "{\"message\":\"Local Forge is down\"}"
+      },
+      {
+        "name": "landing_page",
+        "kind": "http",
+        "url": "https://thedarkfactory.dev/",
+        "timeout_sec": 5,
+        "remediation_action": "alert_human",
+        "remediation_params": "{\"message\":\"Landing page is down\"}"
+      },
+      {
+        "name": "tls_darkfactory_dev",
+        "kind": "tls",
+        "url": "https://thedarkfactory.dev",
+        "timeout_sec": 5
+      },
+      {
+        "name": "tls_darkfactory_couk",
+        "kind": "tls",
+        "url": "https://thedarkfactory.co.uk",
+        "timeout_sec": 5
+      },
+      {
+        "name": "forge_diagnostics",
+        "kind": "forge_diagnostics",
+        "url": "http://localhost:8090/api/forge/admin/diagnostics",
+        "auth_token": "${FORGE_API_SECRET}",
+        "timeout_sec": 5,
+        "stuck_job_threshold_min": 120,
+        "orphaned_stage_threshold_min": 30,
+        "queue_depth_warning": 10,
+        "remediation_action": "requeue_stuck_job",
+        "remediation_params": "{}"
+      }
+    ]
+  },
+  "fixer": {
+    "key_path": "./keys/fixer.key",
+    "socket_path": "/tmp/sentinel-fixer.sock",
+    "supervisor_pubkey": "8099c7318d34692d03856c219f4ecc62a39f7d966aa246bf168b9adbbac33d8d",
+    "forge_api_url": "http://localhost:8090",
+    "forge_api_secret": "${FORGE_API_SECRET}",
+    "safety": {
+      "max_requeues_per_job_per_hour": 3,
+      "max_requeues_per_stage_total": 5,
+      "restart_cooldown_sec": 300,
+      "max_restarts_per_hour": 3
+    }
+  },
+  "alert": {
+    "log_path": "./sentinel.log",
+    "webhook_url": ""
+  }
+}
